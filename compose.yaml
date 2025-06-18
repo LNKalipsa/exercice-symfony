@@ -1,0 +1,53 @@
+name: 'exercice-symfony'
+
+services:
+  server:
+    image: thecodingmachine/php:8.4-v4-apache
+    environment:
+      PHP_EXTENSION_XDEBUG: 1
+      PHP_EXTENSION_INTL: 1
+      APACHE_DOCUMENT_ROOT: public/
+    ports:
+      - "8080:80"
+    volumes:
+      - ./:/var/www/html
+    networks:
+      - exercice_symfony
+
+  database:
+    image: mysql:8.0.32
+    environment:
+      MYSQL_ROOT_PASSWORD: exercice_symfony
+      MYSQL_DATABASE: exercice_symfony
+    ports:
+      - "3308:3306"
+    volumes:
+      - exercice_symfony_db:/var/lib/mysql
+    networks:
+      - exercice_symfony
+
+  mail:
+    image: axllent/mailpit
+    volumes:
+      - mail_data:/data
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+    environment:
+      MP_DATABASE: /data/mailpit.db
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+    networks:
+      - exercice_symfony
+
+
+networks:
+  exercice_symfony:
+
+volumes:
+  exercice_symfony_db:
+  mail_data:
+
+###> doctrine/doctrine-bundle ###
+  database_data:
+###< doctrine/doctrine-bundle ###
