@@ -25,6 +25,8 @@ final class AuthorFactory extends PersistentProxyObjectFactory
         return [
             'firstName' => self::faker()->firstName(),
             'lastName' => self::faker()->lastName(),
+            'avatarUrl' => self::faker()->imageUrl(),
+            'bio' => self::faker()->text(),
         ];
     }
 
