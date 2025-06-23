@@ -18,21 +18,33 @@ final class AuthorsController extends AbstractController
     #[Route('/authors', name: 'get_authors', methods:['GET'])]
     public function getAuthors(AuthorRepository $authorRepository, PostApiClient $postApiClient): JsonResponse
     {
-        
         $authors = $authorRepository->findAll();
+        $authorIds = [];
+
+        foreach($authors as $author){
+            $authorIds[] = $author->getId();
+        }
+
+        $allPosts = $postApiClient->findByAuthorIds($authorIds);
         
-        $authors = array_map(function (Author $author) use ($postApiClient) {
+        $authors = array_map(function (Author $author) use ($allPosts) {
+            $postsByAuthor = [];
+            foreach($allPosts as $post){
+                if($post['authorId'] === $author->getId()){
+                    $postsByAuthor[] = $post;
+                }
+            }
+            
             $author = [
                 'id' => $author->getId(),
                 'firstName' => $author->getFirstName(),
                 'lastName' => $author->getLastName(),
                 'avatarUrl' => $author->getAvatarUrl(),
                 'bio' => $author->getBio(),
-                'posts'=> $postApiClient->findByAuthorId($author->getId())['member'] ?? null
+                'posts'=> $postsByAuthor
             ];
-            return ($author);
+            return $author;
         }, $authors);
-
         return new JsonResponse($authors);
     }
 
