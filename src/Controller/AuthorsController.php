@@ -10,44 +10,59 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Doctrine\ORM\EntityManagerInterface;
+use App\Client\PostApiClient;
 
 #[Route('/api', name: 'api_')]
 final class AuthorsController extends AbstractController
 {
-    #[Route('/authors', name: 'get_authors')]
-    public function getAuthors(AuthorRepository $authorRepository): JsonResponse
+    #[Route('/authors', name: 'get_authors', methods:['GET'])]
+    public function getAuthors(AuthorRepository $authorRepository, PostApiClient $postApiClient): JsonResponse
     {
+        
         $authors = $authorRepository->findAll();
         
-        $authors = array_map(function (Author $author) {
+        $authors = array_map(function (Author $author) use ($postApiClient) {
             $author = [
                 'id' => $author->getId(),
                 'firstName' => $author->getFirstName(),
                 'lastName' => $author->getLastName(),
                 'avatarUrl' => $author->getAvatarUrl(),
                 'bio' => $author->getBio(),
+                'posts'=> $postApiClient->findByAuthorId($author->getId())['member'] ?? null
             ];
-            return $author;
+            return ($author);
         }, $authors);
 
         return new JsonResponse($authors);
     }
 
-    #[Route('/authors/{id}', name: 'get_authors_id')]
-    public function getAuthorsById(int $id, AuthorRepository $authorRepository): JsonResponse
+    #[Route('/authors/{id}', name: 'get_author', methods: ['GET'])]
+    public function getAuthorsById(?Author $author, PostApiClient $postApiClient): JsonResponse
     {
-        $author = $authorRepository->find($id);
-
         if (!$author) {
             return $this->json(['error' => 'Author not found'], 404);
         }
         
+        $postsByAuthor = $postApiClient->findByAuthorId($author->getId())['member'] ?? null;
+
+        if ($postsByAuthor) {
+            $postsByAuthor = array_map(function ($post) {
+                return [
+                    'id' => $post['id'],
+                    'title' => $post['title'],
+                    'content' => $post['content'],
+                    'authorId' => $post['authorId'],
+                ];
+            }, $postsByAuthor);
+        }
+
         $author = [
             'id' => $author->getId(),
             'firstName' => $author->getFirstName(),
             'lastName' => $author->getLastName(),
             'avatarUrl' => $author->getAvatarUrl(),
             'bio' => $author->getBio(),
+            'posts' => $postsByAuthor ?: null,
         ];
         return new JsonResponse($author);
     }
@@ -56,7 +71,7 @@ final class AuthorsController extends AbstractController
     public function newAuthor(Request $request, EntityManagerInterface $entityManager): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
-
+        
         if (json_last_error() !== JSON_ERROR_NONE) {
             return new JsonResponse(['error' => 'Invalid JSON'], Response::HTTP_BAD_REQUEST);
         }
@@ -64,7 +79,11 @@ final class AuthorsController extends AbstractController
             return new JsonResponse(['error' => 'Missing required fields'], Response::HTTP_BAD_REQUEST);
         }
 
-        $author = new Author($data['firstName'], $data['lastName'], $data['avatarUrl'] ?? null, $data['bio'] ?? null);
+        $author = new Author();
+        $author->setFirstName($data['firstName']);
+        $author->setLastName($data['lastName']);
+        $author->setAvatarUrl($data['avatarUrl']?? Null);
+        $author->setBio($data['bio']?? Null);
 
         $entityManager->persist($author);
         $entityManager->flush();
