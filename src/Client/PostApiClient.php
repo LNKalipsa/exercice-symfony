@@ -2,36 +2,31 @@
 
 namespace App\Client;
 
+use Symfony\Contracts\HttpClient\HttpClientInterface;
+
 class PostApiClient
 {
-    public function findByAuthorIds(array $authorIds): array
+    public function __construct( private HttpClientInterface $client) {
+    }
+    
+    public function findByAuthorIds(array $authorIds)
     {
-        // Simulate an API call to fetch posts by author IDs
-        // In a real application, this would make an HTTP request to an external API
-
-        $posts = [];
-        foreach ($authorIds as $authorId) {
-            $posts[] = [
-                'id' => rand(1, 1000),
-                'title' => 'Titre : ' . $authorId,
-                'content' => 'Contenu : ' . $authorId,
-                'authorId' => $authorId,
-            ];
-        }
-
-        return $posts;
+        $response = $this->client->request(
+            'GET',
+            'https://witty-tick-fredericlesueurs-aa3deee5.koyeb.app/api/posts'
+        );
+        
     }
 
-    public function findAuthorById(int $id): array
+    public function findByAuthorId(int $id): array
     {
-        // Simulate an API call to fetch a post by ID
-        // In a real application, this would make an HTTP request to an external API
+        $response = $this->client->request(
+            'GET',
+            'https://witty-tick-fredericlesueurs-aa3deee5.koyeb.app/api/posts?authorId='. $id
+        );
 
-        return [
-            'id' => $id,
-            'title' => 'Titre : ' . $id,
-            'content' => 'Contenu : ' . $id,
-            'authorId' => $id,
-        ];
+        $content = $response->getContent();
+        
+        return $content ? json_decode($content, true) : [];
     }
 }
