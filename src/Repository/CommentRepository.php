@@ -19,17 +19,15 @@ class CommentRepository extends ServiceEntityRepository
 //    /**
 //     * @return Comment[] Returns an array of Comment objects
 //     */
-//    public function findByExampleField($value): array
-//    {
-//        return $this->createQueryBuilder('c')
-//            ->andWhere('c.exampleField = :val')
-//            ->setParameter('val', $value)
-//            ->orderBy('c.id', 'ASC')
-//            ->setMaxResults(10)
-//            ->getQuery()
-//            ->getResult()
-//        ;
-//    }
+    public function findByAuthor($author): array
+    {
+        return $this->createQueryBuilder('c')
+            ->join('c.author', 'a')
+            ->andWhere('a = :author')
+            ->setParameter('author', $author)
+            ->getQuery()
+            ->getResult();
+    }
 
 //    public function findOneBySomeField($value): ?Comment
 //    {

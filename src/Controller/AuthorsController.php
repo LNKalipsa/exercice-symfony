@@ -11,12 +11,13 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Client\PostApiClient;
+use App\Repository\CommentRepository;
 
 #[Route('/api', name: 'api_')]
 final class AuthorsController extends AbstractController
 {
     #[Route('/authors', name: 'get_authors', methods:['GET'])]
-    public function getAuthors(AuthorRepository $authorRepository, PostApiClient $postApiClient): JsonResponse
+    public function getAuthors(AuthorRepository $authorRepository, PostApiClient $postApiClient, CommentRepository $commentRepository): JsonResponse
     {
         $authors = $authorRepository->findAll();
         $authorIds = [];
@@ -25,23 +26,35 @@ final class AuthorsController extends AbstractController
             $authorIds[] = $author->getId();
         }
 
-        $allPosts = $postApiClient->findByAuthorIds($authorIds);
+        $allPosts = $postApiClient->findByAuthorIds($authorIds);        
         
-        $authors = array_map(function (Author $author) use ($allPosts) {
+        $authors = array_map(function (Author $author) use ($allPosts, $commentRepository) {
             $postsByAuthor = [];
+            $commentsByAuthor = $commentRepository->findByAuthor($author);
+            $comments = [];
             foreach($allPosts as $post){
                 if($post['authorId'] === $author->getId()){
                     $postsByAuthor[] = $post;
                 }
             }
             
+            foreach($commentsByAuthor as $comment){
+                
+                $comments[] = [
+                    'id'=> $comment->getId(),
+                    'content'=>$comment->getContent(),
+                    'createdAt' => $comment->getCreatedAt()->format('d/m/Y H:i'),
+                    'postId' => $comment->getPostId(),
+                ];
+            }
             $author = [
                 'id' => $author->getId(),
                 'firstName' => $author->getFirstName(),
                 'lastName' => $author->getLastName(),
                 'avatarUrl' => $author->getAvatarUrl(),
                 'bio' => $author->getBio(),
-                'posts'=> $postsByAuthor
+                'posts'=> $postsByAuthor,
+                'comments' => $comments
             ];
             return $author;
         }, $authors);
@@ -49,12 +62,12 @@ final class AuthorsController extends AbstractController
     }
 
     #[Route('/authors/{id}', name: 'get_author', methods: ['GET'])]
-    public function getAuthorsById(?Author $author, PostApiClient $postApiClient): JsonResponse
+    public function getAuthorsById(?Author $author, PostApiClient $postApiClient, CommentRepository $commentRepository): JsonResponse
     {
         if (!$author) {
             return $this->json(['error' => 'Author not found'], 404);
         }
-        
+
         $postsByAuthor = $postApiClient->findByAuthorId($author->getId())['member'] ?? null;
 
         if ($postsByAuthor) {
@@ -68,6 +81,19 @@ final class AuthorsController extends AbstractController
             }, $postsByAuthor);
         }
 
+        $commentsByAuthor = $commentRepository->findByAuthor($author);
+        $comments = [];
+        foreach($commentsByAuthor as $comment){
+            $comments[] = [
+                'id'=> $comment->getId(),
+                'content'=>$comment->getContent(),
+                'createdAt' => $comment->getCreatedAt()->format('d/m/Y H:i'),
+                'postId' => $comment->getPostId(),
+                
+            ];
+        }
+        
+
         $author = [
             'id' => $author->getId(),
             'firstName' => $author->getFirstName(),
@@ -75,6 +101,7 @@ final class AuthorsController extends AbstractController
             'avatarUrl' => $author->getAvatarUrl(),
             'bio' => $author->getBio(),
             'posts' => $postsByAuthor ?: null,
+            'comments' => $comments
         ];
         return new JsonResponse($author);
     }
