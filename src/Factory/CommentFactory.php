@@ -2,17 +2,17 @@
 
 namespace App\Factory;
 
-use App\Entity\Author;
+use App\Entity\Comment;
 use Zenstruck\Foundry\Persistence\PersistentProxyObjectFactory;
 
 /**
- * @extends PersistentProxyObjectFactory<Author>
+ * @extends PersistentProxyObjectFactory<Comment>
  */
-final class AuthorFactory extends PersistentProxyObjectFactory
+final class CommentFactory extends PersistentProxyObjectFactory
 {
     public static function class(): string
     {
-        return Author::class;
+        return Comment::class;
     }
 
     /**
@@ -23,10 +23,10 @@ final class AuthorFactory extends PersistentProxyObjectFactory
     protected function defaults(): array
     {
         return [
-            'firstName' => self::faker()->firstName(),
-            'lastName' => self::faker()->lastName(),
-            'avatarUrl' => self::faker()->imageUrl(128, 128, 'people'),
-            'bio' => self::faker()->realTextBetween(80, 140),
+            'content'   => self::faker()->realTextBetween(40, 180),
+            'createdAt' => self::faker()->dateTimeBetween('-1 month'),
+            'author'    => AuthorFactory::random(),
+            'postId'    => self::faker()->numberBetween(1, 30),
         ];
     }
 
@@ -36,7 +36,7 @@ final class AuthorFactory extends PersistentProxyObjectFactory
     protected function initialize(): static
     {
         return $this
-            // ->afterInstantiate(function(Author $author): void {})
+            // ->afterInstantiate(function(Comment $Comment): void {})
         ;
     }
 }
